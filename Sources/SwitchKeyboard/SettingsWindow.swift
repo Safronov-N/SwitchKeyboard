@@ -5,9 +5,11 @@ import SwitchKeyboardCore
 @MainActor
 final class SettingsWindowController: NSWindowController, NSWindowDelegate {
     private let model: SettingsModel
+    private let loginItems: LoginItemController
 
-    init(model: SettingsModel) {
+    init(model: SettingsModel, loginItems: LoginItemController) {
         self.model = model
+        self.loginItems = loginItems
         let window = NSWindow(
             contentRect: NSRect(x: 0, y: 0, width: 620, height: 720),
             styleMask: [.titled, .closable, .miniaturizable],
@@ -16,7 +18,7 @@ final class SettingsWindowController: NSWindowController, NSWindowDelegate {
         )
         window.title = "SwitchKeyboard — Настройки"
         window.isReleasedWhenClosed = false
-        window.contentView = NSHostingView(rootView: SettingsView(model: model))
+        window.contentView = NSHostingView(rootView: SettingsView(model: model, loginItems: loginItems))
         window.center()
         super.init(window: window)
         window.delegate = self
@@ -29,6 +31,7 @@ final class SettingsWindowController: NSWindowController, NSWindowDelegate {
 
     func show() {
         model.refreshPermissions?()
+        loginItems.refresh()
         showWindow(nil)
         window?.makeKeyAndOrderFront(nil)
         NSApplication.shared.activate(ignoringOtherApps: true)
@@ -41,6 +44,7 @@ final class SettingsWindowController: NSWindowController, NSWindowDelegate {
 
 private struct SettingsView: View {
     @ObservedObject var model: SettingsModel
+    @ObservedObject var loginItems: LoginItemController
 
     var body: some View {
         ScrollView {
@@ -83,6 +87,7 @@ private struct SettingsView: View {
                     Label("Горячая клавиша", systemImage: "command")
                 }
 
+                launchAtLogin
                 permissions
                 behavior
 
@@ -146,6 +151,40 @@ private struct SettingsView: View {
             .padding(8)
         } label: {
             Label("Системные разрешения", systemImage: "lock.shield")
+        }
+    }
+
+    private var launchAtLogin: some View {
+        GroupBox {
+            VStack(alignment: .leading, spacing: 10) {
+                Toggle(
+                    "Запускать при входе в macOS",
+                    isOn: Binding(
+                        get: { loginItems.isEnabled },
+                        set: { loginItems.setEnabled($0) }
+                    )
+                )
+                .toggleStyle(.switch)
+
+                Text("При входе запускается в строке меню, без окна настроек.")
+                    .font(.callout)
+                    .foregroundStyle(.secondary)
+
+                if !loginItems.statusMessage.isEmpty {
+                    Text(loginItems.statusMessage)
+                        .font(.callout)
+                        .foregroundStyle(loginItems.requiresApproval ? Color.orange : Color.secondary)
+                        .textSelection(.enabled)
+                }
+
+                if loginItems.requiresApproval {
+                    Button("Открыть объекты входа…") { loginItems.openSystemSettings() }
+                        .controlSize(.small)
+                }
+            }
+            .padding(8)
+        } label: {
+            Label("Автозапуск", systemImage: "power")
         }
     }
 

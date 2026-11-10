@@ -19,6 +19,7 @@ enum SwitchKeyboardApp {
 @MainActor
 final class AppDelegate: NSObject, NSApplicationDelegate {
     private let model = SettingsModel()
+    private let loginItems = LoginItemController()
     private var windowController: SettingsWindowController?
     private var monitor: KeyboardMonitor?
     private var statusItem: NSStatusItem?
@@ -30,13 +31,15 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     private var shortcutMenuItem: NSMenuItem?
 
     func applicationDidFinishLaunching(_ notification: Notification) {
+        let launchedInBackground = StartupPolicy.isBackgroundLaunch(NSAppleEventManager.shared().currentAppleEvent)
         if let bundleID = Bundle.main.bundleIdentifier,
            NSRunningApplication.runningApplications(withBundleIdentifier: bundleID)
             .contains(where: { $0.processIdentifier != getpid() }) {
             NSApp.terminate(nil)
             return
         }
-        windowController = SettingsWindowController(model: model)
+        windowController = SettingsWindowController(model: model, loginItems: loginItems)
+        if Bundle.main.bundleURL.pathExtension == "app" { loginItems.enableByDefaultIfNeeded() }
         let monitor = KeyboardMonitor(
             shortcut: model.shortcut,
             isEnabled: model.isEnabled,
@@ -76,7 +79,14 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         timer = Timer.scheduledTimer(withTimeInterval: 2, repeats: true) { [weak self] _ in
             MainActor.assumeIsolated { self?.refreshPermissions() }
         }
-        if !model.accessibilityGranted || !model.inputMonitoringGranted { showSettings() }
+        if StartupPolicy.shouldOpenSettings(
+            permissionsGranted: model.accessibilityGranted && model.inputMonitoringGranted,
+            launchedInBackground: launchedInBackground
+        ) { showSettings() }
+    }
+
+    func applicationDidBecomeActive(_ notification: Notification) {
+        loginItems.refresh()
     }
 
     func applicationWillTerminate(_ notification: Notification) {
