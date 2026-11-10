@@ -11,7 +11,8 @@ let package = Package(
     targets: [
         .target(name: "SwitchKeyboardCore"),
         .executableTarget(name: "SwitchKeyboard", dependencies: ["SwitchKeyboardCore"]),
-        .testTarget(name: "SwitchKeyboardCoreTests", dependencies: ["SwitchKeyboardCore"])
+        .testTarget(name: "SwitchKeyboardCoreTests", dependencies: ["SwitchKeyboardCore"]),
+        .testTarget(name: "SwitchKeyboardSystemTests", dependencies: ["SwitchKeyboard"])
     ],
     swiftLanguageModes: [.v5]
 )

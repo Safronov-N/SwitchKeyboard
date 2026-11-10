@@ -36,16 +36,34 @@ public enum LayoutConverter {
         _ text: String,
         punctuation: PunctuationMode = .contextual
     ) -> String {
+        convertWithLanguage(text, punctuation: punctuation).text
+    }
+
+    public static func convertWithLanguage(
+        _ text: String,
+        punctuation: PunctuationMode = .contextual
+    ) -> LayoutConversion {
         let characters = Array(text)
         let punctuationPositions = punctuation == .contextual ? contextualPunctuation(in: characters) : []
-        return String(characters.enumerated().map { index, character in
-            guard let replacement = replacements[character] else { return character }
-            guard punctuation == .contextual, isASCIIPunctuation(character) else { return replacement }
+        var result = ""
+        result.reserveCapacity(text.utf8.count)
+        var targetLanguage: KeyboardLanguage?
+        for (index, character) in characters.enumerated() {
+            guard let replacement = replacements[character] else {
+                result.append(character)
+                continue
+            }
             // Одинаковый знак может быть буквой ошибочной раскладки или обычной пунктуацией.
             // Без словаря заменяем его только перед латинской буквой, вне парных разделителей.
-            guard punctuationPositions.contains(index) else { return character }
-            return replacement
-        })
+            if punctuation == .contextual, isASCIIPunctuation(character), !punctuationPositions.contains(index) {
+                result.append(character)
+                continue
+            }
+            result.append(replacement)
+            // Направление определяется исходной клавишей: русская «ю» даёт английскую точку.
+            targetLanguage = isLatinLetter(character) || isASCIIPunctuation(character) ? .russian : .english
+        }
+        return LayoutConversion(text: result, targetLanguage: targetLanguage)
     }
 
     private static func isLatinLetter(_ character: Character) -> Bool {

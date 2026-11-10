@@ -6,6 +6,7 @@ struct ReplacementPlan {
     var events: [CGEvent] = []
     var usedRecentText = false
     var text = ""
+    var targetLanguage: KeyboardLanguage?
     var message: String
 
     var isReady: Bool { !events.isEmpty }
@@ -78,7 +79,8 @@ final class TextReplacer {
                 range = nil
             }
         }
-        let converted = LayoutConverter.convert(original)
+        let conversion = LayoutConverter.convertWithLanguage(original)
+        let converted = conversion.text
         guard converted != original else { return ReplacementPlan(message: "В фрагменте нет букв EN/RU для замены.") }
         guard isValid(), isFrontmost(pid), let current = focusedElement(in: app), CFEqual(current, element),
               selectionMatches(element, range: selection, selectedText: selectedText) else {
@@ -113,6 +115,7 @@ final class TextReplacer {
             events: prefix + insertion,
             usedRecentText: usesBuffer,
             text: converted,
+            targetLanguage: conversion.targetLanguage,
             message: "Текст преобразован."
         )
     }

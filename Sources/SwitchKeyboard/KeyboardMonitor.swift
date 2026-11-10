@@ -350,6 +350,20 @@ final class KeyboardMonitor {
                 } else {
                     buffer.reset()
                 }
+                if apply, let language = plan.targetLanguage {
+                    // Выбор источника идёт после отправки замены и до выпуска раннего ввода.
+                    // Event tap продолжает принимать события, пока главный поток выполняет TIS.
+                    DispatchQueue.main.async { [self] in
+                        let selection = InputSourceController.select(language, for: pid) { gate.matches(token) }
+                        perform { [self] in
+                            guard operationID == operation else { return }
+                            isReplacing = false
+                            report(true, selection.message ?? plan.message)
+                            flushDeferredEvents(using: gate.matches(token) ? selection.layout : nil)
+                        }
+                    }
+                    return
+                }
                 isReplacing = false
                 report(true, gate.matches(token) ? plan.message : "Замена отменена: фокус изменился.")
                 flushDeferredEvents()
@@ -357,11 +371,15 @@ final class KeyboardMonitor {
         }
     }
 
-    private func flushDeferredEvents(before proxy: CGEventTapProxy? = nil) {
+    private func flushDeferredEvents(
+        before proxy: CGEventTapProxy? = nil,
+        using layout: KeyboardLayoutSnapshot? = nil
+    ) {
         // Сохраняем порядок ввода, пришедшего во время межпроцессного запроса AX.
         let pending = deferredEvents
         deferredEvents.removeAll(keepingCapacity: true)
         for (event, pid) in pending {
+            if pid == targetPID { layout?.retranslate(event) }
             if pid == targetPID, event.type == .keyDown {
                 track(event, keyCode: UInt16(event.getIntegerValueField(.keyboardEventKeycode)))
             }
