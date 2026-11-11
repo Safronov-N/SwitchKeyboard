@@ -3,7 +3,7 @@ import Foundation
 /// Меняет соответствующие клавиши QWERTY и ЙЦУКЕН без словарей и проверки орфографии.
 public enum LayoutConverter {
     public enum PunctuationMode: Sendable {
-        /// Сохраняет знаки в конце слова и парные кавычки/скобки.
+        /// Сохраняет обычные знаки и распознаёт символы верхнего ряда после латинского текста.
         case contextual
         /// Меняет все буквенные клавиши, включая `[];'`,.`, строго обратимо.
         case physicalKeys
@@ -32,6 +32,11 @@ public enum LayoutConverter {
         return result
     }()
 
+    // Символы верхнего ряда с Shift: ABC → стандартная русская раскладка macOS.
+    private static let russianShiftedSymbols: [Character: Character] = [
+        "@": "\"", "#": "№", "$": "%", "%": ":", "^": ",", "&": ".", "*": ";"
+    ]
+
     public static func convert(
         _ text: String,
         punctuation: PunctuationMode = .contextual
@@ -48,7 +53,13 @@ public enum LayoutConverter {
         var result = ""
         result.reserveCapacity(text.utf8.count)
         var targetLanguage: KeyboardLanguage?
+        var followsLatin = false
         for (index, character) in characters.enumerated() {
+            if punctuation == .contextual, followsLatin, let symbol = russianShiftedSymbols[character] {
+                result.append(symbol)
+                continue
+            }
+            followsLatin = isLatinLetter(character)
             guard let replacement = replacements[character] else {
                 result.append(character)
                 continue
@@ -61,7 +72,7 @@ public enum LayoutConverter {
             }
             result.append(replacement)
             // Направление определяется исходной клавишей: русская «ю» даёт английскую точку.
-            targetLanguage = isLatinLetter(character) || isASCIIPunctuation(character) ? .russian : .english
+            targetLanguage = followsLatin || isASCIIPunctuation(character) ? .russian : .english
         }
         return LayoutConversion(text: result, targetLanguage: targetLanguage)
     }

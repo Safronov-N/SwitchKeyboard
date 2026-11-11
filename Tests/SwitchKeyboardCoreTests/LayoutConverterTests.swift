@@ -37,6 +37,16 @@ final class LayoutConverterTests: XCTestCase {
         XCTAssertEqual(LayoutConverter.convert("café 👩‍💻"), "сфаé 👩‍💻")
     }
 
+    func testShiftedSymbolsUseTheContextOfTheLatinWord() {
+        XCTAssertEqual(
+            LayoutConverter.convert("Rfr^ ltkf& Vbh% ghbdtn*! 50%"),
+            "Как, дела. Мир: привет;! 50%"
+        )
+        XCTAssertEqual(LayoutConverter.convert("Ghbdtn^&"), "Привет,.")
+        XCTAssertEqual(LayoutConverter.convert("Привет, как дела?"), "Ghbdtn, rfr ltkf?")
+        XCTAssertEqual(LayoutConverter.convert("2 ^ 3 & 50%"), "2 ^ 3 & 50%")
+    }
+
     func testAmbiguousPunctuationIsConvertedOnlyBeforeLatinLetters() {
         XCTAssertEqual(LayoutConverter.convert(";bpym"), "жизнь")
         XCTAssertEqual(LayoutConverter.convert("[jxe"), "хочу")

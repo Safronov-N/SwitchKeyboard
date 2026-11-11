@@ -12,6 +12,10 @@ final class LanguageTests: XCTestCase {
             LayoutConversion(text: "привет как дела?", targetLanguage: .russian)
         )
         XCTAssertEqual(
+            LayoutConverter.convertWithLanguage("Ghbdtn^ rfr ltkf?"),
+            LayoutConversion(text: "Привет, как дела?", targetLanguage: .russian)
+        )
+        XCTAssertEqual(
             LayoutConverter.convertWithLanguage("Ghbdtn рщц фку нщг"),
             LayoutConversion(text: "Привет how are you", targetLanguage: .english)
         )
