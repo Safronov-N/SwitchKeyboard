@@ -47,7 +47,7 @@ final class LayoutConverterTests: XCTestCase {
         XCTAssertEqual(LayoutConverter.convert("2 ^ 3 & 50%"), "2 ^ 3 & 50%")
     }
 
-    func testAmbiguousPunctuationIsConvertedOnlyBeforeLatinLetters() {
+    func testAmbiguousPunctuationBeforeLatinLetters() {
         XCTAssertEqual(LayoutConverter.convert(";bpym"), "жизнь")
         XCTAssertEqual(LayoutConverter.convert("[jxe"), "хочу")
         XCTAssertEqual(LayoutConverter.convert("'nj"), "это")
@@ -55,6 +55,20 @@ final class LayoutConverterTests: XCTestCase {
         XCTAssertEqual(LayoutConverter.convert("ghbdtn;"), "привет;")
         XCTAssertEqual(LayoutConverter.convert("j,"), "о,")
         XCTAssertEqual(LayoutConverter.convert("j,", punctuation: .physicalKeys), "об")
+    }
+
+    func testPeriodAndOpeningBracketAtTheEndOfALatinWord() {
+        XCTAssertEqual(
+            LayoutConverter.convertWithLanguage("Yt gjybvf."),
+            LayoutConversion(text: "Не понимаю", targetLanguage: .russian)
+        )
+        XCTAssertEqual(LayoutConverter.convert("E dct[ rfhnjxtr"), "У всех карточек")
+        XCTAssertEqual(LayoutConverter.convert("Yt gjybvf. "), "Не понимаю ")
+        XCTAssertEqual(LayoutConverter.convert("Z k.,k. nt,z"), "Я люблю тебя")
+        XCTAssertEqual(LayoutConverter.convert("ytn..."), "нет...")
+        XCTAssertEqual(LayoutConverter.convert("[ghbdtn]"), "[привет]")
+        XCTAssertEqual(LayoutConverter.convert("ghbdtn[vbh]"), "привет[мир]")
+        XCTAssertEqual(LayoutConverter.convert("3.14"), "3.14")
     }
 
     func testPairedDelimitersRemainDelimiters() {

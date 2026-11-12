@@ -65,7 +65,7 @@ public enum LayoutConverter {
                 continue
             }
             // Одинаковый знак может быть буквой ошибочной раскладки или обычной пунктуацией.
-            // Без словаря заменяем его только перед латинской буквой, вне парных разделителей.
+            // Контекст учитывает соседние латинские буквы и парные разделители.
             if punctuation == .contextual, isASCIIPunctuation(character), !punctuationPositions.contains(index) {
                 result.append(character)
                 continue
@@ -96,7 +96,10 @@ public enum LayoutConverter {
             if isLatinLetter(character) {
                 followedByLatin = true
             } else if !protected.contains(index), isASCIIPunctuation(character), replacements[character] != nil {
-                if followedByLatin { positions.insert(index) }
+                let followsLatin = index > 0 && isLatinLetter(characters[index - 1])
+                let startsDotSequence = character == "." && index + 1 < characters.count && characters[index + 1] == "."
+                let isWordEnding = followsLatin && (character == "[" || character == ".") && !startsDotSequence
+                if followedByLatin || isWordEnding { positions.insert(index) }
             } else {
                 followedByLatin = false
             }
